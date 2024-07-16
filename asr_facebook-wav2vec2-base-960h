@@ -1,0 +1,43 @@
+from IPython.display import Audio # Allows displaying audio files in IPython notebooks
+from scipy.io import wavfile # Provides functions for reading and writing WAV files
+import numpy as np
+from google.colab import drive
+drive.mount('/content/drive')
+file_name = '/content/drive/My Drive/speech_to_text1.wav'
+!pip install transformers 
+import soundfile as sf #  For reading and writing sound files.
+import librosa # Used for audio and music signal analysis.
+import torch #  PyTorch library for deep learning
+from transformers import AutoProcessor, AutoModelForCTC # Imports the 'AutoProcessor' and 'AutoModelForCTC' classes from the Transformers library.
+                                                #These classes are used for preprocessing audio data and running inference with a pretrained model, respectively.
+
+processor = AutoProcessor.from_pretrained("facebook/wav2vec2-base-960h") 
+# Initializes an instance of 'AutoProcessor' with a pretrained processor for the Wav2Vec2 model '(facebook/wav2vec2-base-960h)'.
+# The processor handles feature extraction and tokenization.
+
+model = AutoModelForCTC.from_pretrained("facebook/wav2vec2-base-960h")
+# Initializes an instance of 'AutoModelForCTC' with a pretrained Wav2Vec2 model '(facebook/wav2vec2-base-960h)'.
+# This model is specifically designed for connectionist temporal classification (CTC), which is commonly used in speech recognition tasks.
+
+input_audio, _ = librosa.load(file_name, sr=16000)
+# Uses 'librosa.load' to load the audio file '(file_name)' into 'input_audio'. 
+# The 'sr=16000' parameter specifies the target sampling rate (16 kHz) for the audio. 
+#'librosa.load' returns the audio data as a NumPy array '(input_audio)' and the sampling rate ('_' in this case, which is ignored)
+
+input_values = processor(input_audio, return_tensors="pt").input_values
+# Uses the 'processor' (initialized Wav2Vec2 processor) to process 'input_audio'.
+# The processed input values are returned as PyTorch tensors '(return_tensors="pt")' and are accessed using '.input_values'
+
+logits = model(input_values).logits
+# Passes the processed 'input_values' through the 'model' (pretrained Wav2Vec2 model) to get the logits (raw predictions) for each time step in the input audio sequence.
+# The '.logits' attribute contains these raw predictions
+
+predicted_ids = torch.argmax(logits, dim=-1)
+# Uses PyTorch's 'torch.argmax' function to get the indices of the maximum logits along the last dimension '(dim=-1)'.
+# These indices represent the predicted tokens (or classes) for each time step
+
+transcription = processor.batch_decode(predicted_ids)[0]
+# Uses the 'batch_decode' method of the 'processor' to decode the predicted token IDs '(predicted_ids)' into human-readable text '(transcription)'. 
+# '[0]' accesses the first (and presumably only) transcription in the batch
+
+transcription
